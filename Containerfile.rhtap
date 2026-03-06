@@ -1,4 +1,4 @@
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_1.20 AS builder
+FROM docker.io/library/golang:1.24 AS builder
 
 ENV SOURCE_DIR=/rh-trex
 WORKDIR $SOURCE_DIR
@@ -6,7 +6,6 @@ COPY . $SOURCE_DIR
 
 ENV GOFLAGS=""
 RUN make binary
-RUN pwd
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
@@ -33,5 +32,3 @@ LABEL name="trex" \
       io.k8s.description="rh-trex API" \
       io.k8s.display-name="rh-trex" \
       io.openshift.tags="trex"
-
-#20231204
