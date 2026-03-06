@@ -1,0 +1,48 @@
+kind: Pipeline
+apiVersion: tekton.dev/v1
+metadata:
+  name: rh-trex-simple-test
+spec:
+  params:
+    - description: Snapshot of the application
+      name: SNAPSHOT
+      default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
+      type: string
+  tasks:
+    - name: simple-test
+      description: Simplest possible test - sleeps for 1 second and reports success
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+        results:
+          - name: TEST_OUTPUT
+            description: Test output
+        steps:
+          - name: run-simple-test
+            image: quay.io/konflux-ci/konflux-test:stable
+            env:
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+            script: |
+              #!/bin/bash
+              set -e
+
+              echo "=== rh-trex Simple Integration Test ==="
+              echo "Snapshot received:"
+              echo "${SNAPSHOT}" | jq . 2>/dev/null || echo "${SNAPSHOT}"
+
+              echo ""
+              echo "Running simple test (sleep 1)..."
+              sleep 1
+              echo "Test completed successfully."
+
+              RESULT="SUCCESS"
+              TEST_OUTPUT=$(jq -rc --null-input \
+                --arg date "$(date -u --iso-8601=seconds)" \
+                --arg result "${RESULT}" \
+                '{result: $result, timestamp: $date, failures: 0, successes: 1, warnings: 0}')
+
+              echo -n "${TEST_OUTPUT}" | tee $(results.TEST_OUTPUT.path)
